@@ -4,6 +4,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.patches as patches
+# import os
 
 '''
 log tuple:
@@ -19,6 +20,10 @@ log tuple:
     @ BIG: bool, if true, means a PAGE / BIGMEM op
 
 '''
+
+# readEnd, writeEnd = os.pipe()
+# readFile = os.fdopen(readEnd)
+# firstLine = readFile.readline()
 
 # c type enum def
 MALLOC = 0
@@ -38,11 +43,43 @@ ncpu = 4
 # now constuct the AxesSubplot objects (in a line)
 fig, axs = plt.subplots(ncpu + 1, 1)
 
+'''
+[CPUx] Addr:0x???????? Size:???? allocate page
+[CPUx] Addr:0x???????? Size:???? free page
+[CPUx] Addr:0x???????? Size:???? allocate big mem
+[CPUx] Addr:0x???????? Size:???? free big mem
+[CPUx] Addr:0x???????? Size:???? allocate 
+[CPUx] Addr:0x???????? Size:???? free 
+
+->
+
+Memory Allocator should output this to accelerate python exec
+x 0x???????? ???? ?
+
+'''
+
 def log_parse():
-    # read from pipe
+    # read from pipe and parse
     # (CPU, Addr, Size, OP_TYPE, BIG)
     # TODO: parse ...
     mem_usage_list.append([0, 0, 0x1000000, 0, True])
+    
+def parse_single(line):
+    args = line.split(' ')
+    addr = int(args[1], 16)
+    op_type = int(args[3])
+    assert(0 <= op_type <= 5)
+    if op_type == MALLOC or op_type == MALLOC_PAGE or op_type == MALLOC_BIGMEM:
+        mem_usage_list.append([int(args[0]), addr, int(args[2]), op_type, 
+                               op_type == MALLOC_PAGE or op_type == MALLOC_BIGMEM])
+    else:
+        # todo: use rb-tree order by Addr. O(logn) insert and remove complexity.
+        assert(op_type == FREE or op_type == FREE_PAGE or op_type == FREE_BIGMEM)
+        # now is O(n) insert and remove complexity
+        for i, (_, addr_t, _, _, _) in enumerate(mem_usage_list):
+            if addr_t == addr:
+                mem_usage_list.pop(i)
+        
 
 # # clear the scene
 def plot_init():
@@ -60,6 +97,7 @@ def plot_init():
 
 # read the pre-constructed numpy data
 def update(n):
+    # log_parse()
     # clear graph before draw
     for i in range(ncpu + 1):
         axs[i].clear()
@@ -87,9 +125,14 @@ def update(n):
 
 if __name__ == '__main__':
     plot_init()
-    log_parse()
-    ani = FuncAnimation(fig, update, interval=10, save_count=100)
-
+    # coroutine implement func?
+    ani = FuncAnimation(fig, update, interval=1000, save_count=100) 
     # live show
     plt.show()
+    i = 0
+    # while True will stuck since update has no time to exec.
+    while i % 5 == 0:
+        log_parse()
+        i = i + 1
+
 
