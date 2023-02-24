@@ -53,13 +53,15 @@ def plot_init():
 
 # read the pre-constructed numpy data
 def update(n):
-    for i in range(ncpu + 1):
-        axs[i].clear()
-        axs[i].set_xlim([mem_start, mem_end])
-        axs[i].set_ylim([0, 1])
-        axs[i].yaxis.set_ticks([])
-        axs[i].xaxis.set_ticks([])
-    fig.suptitle('Memory Usage Graph')
+    # for i in range(ncpu + 1):
+    #     axs[i].clear()
+    #     axs[i].set_xlim([mem_start, mem_end])
+    #     axs[i].set_ylim([0, 1])
+    #     axs[i].yaxis.set_ticks([])
+    #     axs[i].xaxis.set_ticks([])
+    plt.cla()
+    if n==1:
+        fig.suptitle('Memory Usage Graph')
     # for i in range(ncpu+1):
     #     axs[i].clear()
     for [CPU, Addr, Size, OP_TYPE, isBIG] in mem_usage_list:
