@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.patches as patches
 import os
+import matplotlib.ticker as ticker
 
 '''
 log tuple:
@@ -29,12 +30,11 @@ FREE_PAGE = 3
 MALLOC_BIGMEM = 4
 FREE_BIGMEM = 5
 
-
-# TODO: find a data structure
-
+# config
 mem_start = 0
 mem_end = 0x10000
 ncpu = 4
+batch = 20
 
 # now constuct the AxesSubplot objects (in a line)
 fig, axs = plt.subplots(ncpu + 1, 1)
@@ -71,10 +71,14 @@ def parse_single(line):
     if op_type == MALLOC or op_type == MALLOC_PAGE or op_type == MALLOC_BIGMEM:
         mem_usage_list[addr] = [int(line[0]), int(line[2]), op_type, op_type == MALLOC_PAGE or op_type == MALLOC_BIGMEM]
     else:
-
         assert(op_type == FREE or op_type == FREE_PAGE or op_type == FREE_BIGMEM)
         del mem_usage_list[addr]
         
+
+def to_hex(x, pos):
+    return '0x%x' % int(x)
+
+fmt = ticker.FuncFormatter(to_hex)
 
 # # clear the scene
 def plot_init():
@@ -84,8 +88,9 @@ def plot_init():
         axs[i].set_ylim([0, 1])
         axs[i].yaxis.set_ticks([])
         axs[i].xaxis.set_ticks([])
-        # axs[i].xaxis.set_ticks([mem_start, mem_end])
+        axs[i].xaxis.set_ticks([int(mem_start), int(mem_end)])
         # axs[i].xaxis.set_major_formatter(ticker.FormatStrFormatter("0x%x"))
+        axs[i].xaxis.set_major_formatter(fmt)
     fig.suptitle('Memory Usage Graph')
     
 
@@ -95,15 +100,13 @@ def update(n):
     # log_parse()
     # clear graph before draw
     for i in range(ncpu + 1):
-        axs[i].clear()
-        axs[i].set_xlim([mem_start, mem_end])
-        axs[i].set_ylim([0, 1])
-        axs[i].yaxis.set_ticks([])
-        axs[i].xaxis.set_ticks([])
+        for p in axs[i].patches:
+            # print(p)
+            # print(p.xy[0])
+            p.remove()
 
-    parse_single(lines[n])
-    # for i in range(ncpu+1):
-    #     axs[i].clear()
+    for i in range(batch*n, batch*(n+1)):
+        parse_single(lines[i])
 
     for Addr, [CPU, Size, OP_TYPE, isBIG] in mem_usage_list.items():
         assert(mem_start <= Addr <= mem_end)
@@ -120,12 +123,7 @@ if __name__ == '__main__':
     lines = f.readlines()
     lines = [line.rstrip() for line in lines]
     lines = [line.split(' ') for line in lines]
-    # for i, line in enumerate(lines):
-    #     if line[0] != '0':
-    #         print(i)
-    #         print(line)
-    # readEnd, writeEnd = os.pipe()
-    # readFile = os.fdopen(readEnd)
+    
     plot_init()
     # coroutine implement func?
     ani = FuncAnimation(fig, update, interval=1, save_count=100) 
