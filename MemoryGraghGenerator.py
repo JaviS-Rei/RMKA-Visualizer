@@ -56,12 +56,11 @@ x 0x???????? ???? ?
 
 f = 0
 lines = []
-mem_usage_list = []
+mem_usage_list = {}
 
 def log_parse():
     # read from pipe and parse
     # (CPU, Addr, Size, OP_TYPE, BIG)
-    # TODO: parse ...
     lines = f.readlines()
     lines = [line.rstrip() for line in lines]
     
@@ -70,15 +69,11 @@ def parse_single(line):
     op_type = int(line[3])
     assert(0 <= op_type <= 5)
     if op_type == MALLOC or op_type == MALLOC_PAGE or op_type == MALLOC_BIGMEM:
-        mem_usage_list.append([int(line[0]), addr, int(line[2]), op_type, 
-                               op_type == MALLOC_PAGE or op_type == MALLOC_BIGMEM])
+        mem_usage_list[addr] = [int(line[0]), int(line[2]), op_type, op_type == MALLOC_PAGE or op_type == MALLOC_BIGMEM]
     else:
-        # todo: use rb-tree order by Addr. O(logn) insert and remove complexity.
+
         assert(op_type == FREE or op_type == FREE_PAGE or op_type == FREE_BIGMEM)
-        # now is O(n) insert and remove complexity
-        for i, (_, addr_t, _, _, _) in enumerate(mem_usage_list):
-            if addr_t == addr:
-                mem_usage_list.pop(i)
+        del mem_usage_list[addr]
         
 
 # # clear the scene
@@ -109,8 +104,8 @@ def update(n):
     parse_single(lines[n])
     # for i in range(ncpu+1):
     #     axs[i].clear()
-    # print(mem_usage_list)
-    for [CPU, Addr, Size, OP_TYPE, isBIG] in mem_usage_list:
+
+    for Addr, [CPU, Size, OP_TYPE, isBIG] in mem_usage_list.items():
         assert(mem_start <= Addr <= mem_end)
         assert(mem_start <= Addr + Size <= mem_end)
         rect = patches.Rectangle((Addr, 0), Size, 1, facecolor='orange')
@@ -118,12 +113,6 @@ def update(n):
         if isBIG == True:
             rect = patches.Rectangle((Addr, 0), Size, 1, facecolor='orange')
             axs[0].add_patch(rect)
-    # # dynamic draw test.
-    # if n==2:
-    #     mem_usage_list.append([0, 0x3000000, 0x1000000, 0, True])
-    # if n==3:
-    #     mem_usage_list.pop(0)
-    
 
 
 if __name__ == '__main__':
