@@ -21,8 +21,6 @@ log tuple:
 
 '''
 
-readFile = 0
-
 # c type enum def
 MALLOC = 0
 FREE = 1
@@ -31,11 +29,11 @@ FREE_PAGE = 3
 MALLOC_BIGMEM = 4
 FREE_BIGMEM = 5
 
-mem_usage_list = []
+
 # TODO: find a data structure
 
 mem_start = 0
-mem_end = 0x10000000
+mem_end = 0x10000
 ncpu = 4
 
 # now constuct the AxesSubplot objects (in a line)
@@ -56,20 +54,23 @@ x 0x???????? ???? ?
 
 '''
 
+f = 0
+lines = []
+mem_usage_list = []
+
 def log_parse():
     # read from pipe and parse
     # (CPU, Addr, Size, OP_TYPE, BIG)
     # TODO: parse ...
-    line = readFile.readline()
-    parse_single(line)
+    lines = f.readlines()
+    lines = [line.rstrip() for line in lines]
     
 def parse_single(line):
-    args = line.split(' ')
-    addr = int(args[1], 16)
-    op_type = int(args[3])
+    addr = int(line[1], 16)
+    op_type = int(line[3])
     assert(0 <= op_type <= 5)
     if op_type == MALLOC or op_type == MALLOC_PAGE or op_type == MALLOC_BIGMEM:
-        mem_usage_list.append([int(args[0]), addr, int(args[2]), op_type, 
+        mem_usage_list.append([int(line[0]), addr, int(line[2]), op_type, 
                                op_type == MALLOC_PAGE or op_type == MALLOC_BIGMEM])
     else:
         # todo: use rb-tree order by Addr. O(logn) insert and remove complexity.
@@ -104,8 +105,11 @@ def update(n):
         axs[i].set_ylim([0, 1])
         axs[i].yaxis.set_ticks([])
         axs[i].xaxis.set_ticks([])
+
+    parse_single(lines[n])
     # for i in range(ncpu+1):
     #     axs[i].clear()
+    # print(mem_usage_list)
     for [CPU, Addr, Size, OP_TYPE, isBIG] in mem_usage_list:
         assert(mem_start <= Addr <= mem_end)
         assert(mem_start <= Addr + Size <= mem_end)
@@ -115,25 +119,29 @@ def update(n):
             rect = patches.Rectangle((Addr, 0), Size, 1, facecolor='orange')
             axs[0].add_patch(rect)
     # # dynamic draw test.
-    if n==2:
-        mem_usage_list.append([0, 0x3000000, 0x1000000, 0, True])
-    if n==3:
-        mem_usage_list.pop(0)
+    # if n==2:
+    #     mem_usage_list.append([0, 0x3000000, 0x1000000, 0, True])
+    # if n==3:
+    #     mem_usage_list.pop(0)
     
 
 
 if __name__ == '__main__':
+    f = open('./log', 'r')
+    lines = f.readlines()
+    lines = [line.rstrip() for line in lines]
+    lines = [line.split(' ') for line in lines]
+    # for i, line in enumerate(lines):
+    #     if line[0] != '0':
+    #         print(i)
+    #         print(line)
     # readEnd, writeEnd = os.pipe()
     # readFile = os.fdopen(readEnd)
     plot_init()
     # coroutine implement func?
-    ani = FuncAnimation(fig, update, interval=1000, save_count=100) 
+    ani = FuncAnimation(fig, update, interval=1, save_count=100) 
     # live show
     plt.show()
-    i = 0
-    # while True will stuck since update has no time to exec.
-    while i % 5 == 0:
-        # log_parse()
-        i = i + 1
+    
 
 
