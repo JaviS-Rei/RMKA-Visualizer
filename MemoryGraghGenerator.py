@@ -4,7 +4,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.patches as patches
-# import os
+import os
 
 '''
 log tuple:
@@ -21,9 +21,7 @@ log tuple:
 
 '''
 
-# readEnd, writeEnd = os.pipe()
-# readFile = os.fdopen(readEnd)
-# firstLine = readFile.readline()
+readFile = 0
 
 # c type enum def
 MALLOC = 0
@@ -62,7 +60,8 @@ def log_parse():
     # read from pipe and parse
     # (CPU, Addr, Size, OP_TYPE, BIG)
     # TODO: parse ...
-    mem_usage_list.append([0, 0, 0x1000000, 0, True])
+    line = readFile.readline()
+    parse_single(line)
     
 def parse_single(line):
     args = line.split(' ')
@@ -116,14 +115,16 @@ def update(n):
             rect = patches.Rectangle((Addr, 0), Size, 1, facecolor='orange')
             axs[0].add_patch(rect)
     # # dynamic draw test.
-    # if n==2:
-    #     mem_usage_list.append([0, 0x3000000, 0x1000000, 0, True])
-    # if n==3:
-    #     mem_usage_list.pop(0)
+    if n==2:
+        mem_usage_list.append([0, 0x3000000, 0x1000000, 0, True])
+    if n==3:
+        mem_usage_list.pop(0)
     
 
 
 if __name__ == '__main__':
+    # readEnd, writeEnd = os.pipe()
+    # readFile = os.fdopen(readEnd)
     plot_init()
     # coroutine implement func?
     ani = FuncAnimation(fig, update, interval=1000, save_count=100) 
@@ -132,7 +133,7 @@ if __name__ == '__main__':
     i = 0
     # while True will stuck since update has no time to exec.
     while i % 5 == 0:
-        log_parse()
+        # log_parse()
         i = i + 1
 
 
