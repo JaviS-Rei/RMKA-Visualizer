@@ -1,10 +1,14 @@
 # https://www.jianshu.com/p/88238e34c689
 # https://littleround.cn/2019/01/04/Python%E5%88%B6%E4%BD%9C%E5%8A%A8%E6%80%81%E5%9B%BE-matplotlib.animation/
 
+'''
+python ./MemoryGraphGenerator.py ./log
+'''
+
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.patches as patches
-import os
+import sys
 import matplotlib.ticker as ticker
 
 '''
@@ -22,6 +26,9 @@ log tuple:
 
 '''
 
+# cpu_colors[0] is main_mem
+cpu_colors = ['grey', 'orange', 'blue', 'green', 'brown']
+
 # c type enum def
 MALLOC = 0
 FREE = 1
@@ -32,7 +39,7 @@ FREE_BIGMEM = 5
 
 # config
 mem_start = 0
-mem_end = 0x10000
+mem_end = 0x100000
 ncpu = 4
 batch = 20
 
@@ -89,8 +96,9 @@ def plot_init():
         axs[i].yaxis.set_ticks([])
         axs[i].xaxis.set_ticks([])
         axs[i].xaxis.set_ticks([int(mem_start), int(mem_end)])
-        # axs[i].xaxis.set_major_formatter(ticker.FormatStrFormatter("0x%x"))
         axs[i].xaxis.set_major_formatter(fmt)
+        axs[i].title.set_text('CPU {}'.format(i))
+    axs[0].title.set_text('Memory')
     fig.suptitle('Memory Usage Graph')
     
 
@@ -111,15 +119,20 @@ def update(n):
     for Addr, [CPU, Size, OP_TYPE, isBIG] in mem_usage_list.items():
         assert(mem_start <= Addr <= mem_end)
         assert(mem_start <= Addr + Size <= mem_end)
-        rect = patches.Rectangle((Addr, 0), Size, 1, facecolor='orange')
-        axs[CPU+1].add_patch(rect)
         if isBIG == True:
-            rect = patches.Rectangle((Addr, 0), Size, 1, facecolor='orange')
+            # todo: ...
+            if OP_TYPE == MALLOC_PAGE:
+                rect = patches.Rectangle((Addr, 0), Size, 1, facecolor=cpu_colors[CPU+1])
+            elif OP_TYPE == MALLOC_BIGMEM:
+                rect = patches.Rectangle((Addr, 0), Size, 1, facecolor=cpu_colors[0])
             axs[0].add_patch(rect)
+        else:
+            rect = patches.Rectangle((Addr, 0), Size, 1, facecolor=cpu_colors[CPU+1])
+            axs[CPU+1].add_patch(rect)
 
 
 if __name__ == '__main__':
-    f = open('./log', 'r')
+    f = open(sys.argv[1], 'r')
     lines = f.readlines()
     lines = [line.rstrip() for line in lines]
     lines = [line.split(' ') for line in lines]
